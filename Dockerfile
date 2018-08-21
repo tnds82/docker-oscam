@@ -1,34 +1,25 @@
-FROM lsiobase/alpine:3.7
+FROM lsiobase/ubuntu:bionic as buildstage
+############## build stage ##############
 
-# set version label
-ARG BUILD_DATE
-ARG VERSION
-LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="saarg"
+# environment settings
+ARG DEBIAN_FRONTEND="noninteractive"
 
 RUN \
  echo "**** install build packages ****" && \
- apk add --no-cache --virtual=build-dependencies \
+ apt-get update && \
+ apt-get install -y \
+	build-essential \
 	bzr \
-	curl \
-	gcc \
-	g++ \
-	libusb-dev \
-	linux-headers \
-	make \
-	libressl-dev \
-	pcsc-lite-dev \
-	tar && \
- echo "**** install runtime packages ****" && \
- apk add --no-cache \
-	ccid \
-	libcrypto1.0 \
-	libssl1.0 \
-	libusb \
-	pcsc-lite \
-	pcsc-lite-libs && \
+	libpcsclite-dev \
+	libssl-dev \
+	libusb-1.0-0-dev
+
+RUN \
+ echo "**** fetch oscam source ****" && \
+ bzr branch lp:oscam /tmp/oscam-svn
+
+RUN \
  echo "**** compile oscam ****" && \
- bzr branch lp:oscam /tmp/oscam-svn && \
  cd /tmp/oscam-svn && \
  ./config.sh \
 	--enable all \
@@ -47,12 +38,28 @@ RUN \
 	DEFAULT_PCSC_FLAGS="-I/usr/include/PCSC" \
 	NO_PLUS_TARGET=1 \
 	OSCAM_BIN=/usr/bin/oscam \
-	pcsc-libusb && \
- echo "**** fix broken permissions from pcscd install ****" && \
- chown root:root \
-	/usr/sbin/pcscd && \
- chmod 755 \
-	/usr/sbin/pcscd && \
+	pcsc-libusb
+############## runtime stage ##############
+FROM lsiobase/ubuntu:bionic
+
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="saarg"
+
+# environment settings
+ARG DEBIAN_FRONTEND="noninteractive"
+
+RUN \
+ echo "**** install runtime packages ****" && \
+ apt-get update && \
+ apt-get install -y \
+	libccid \
+	libpcsclite1 \
+	libusb-1.0-0 \
+	pcscd \
+	udev && \
  echo "**** install PCSC drivers ****" && \
  mkdir -p \
 	/tmp/omnikey && \
@@ -64,17 +71,15 @@ RUN \
 	/tmp/omnikey --strip-components=2 && \
  cd /tmp/omnikey && \
  ./install && \
- echo "**** fix group for card readers and add abc to dialout group ****" && \
- groupmod -g 24 cron && \
- groupmod -g 16 dialout && \
- usermod -a -G 16 abc && \
  echo "**** cleanup ****" && \
- apk del --purge \
-	build-dependencies && \
  rm -rf \
-	/tmp/*
+	/tmp/* \
+	/var/lib/apt/lists/* \
+	/var/tmp/*
 
-# copy local files
+# copy buildstage and local files
+COPY --from=buildstage /usr/bin/oscam /usr/bin/
+COPY --from=buildstage /usr/bin/oscam.debug /usr/bin/
 COPY root/ /
 
 # Ports and volumes
