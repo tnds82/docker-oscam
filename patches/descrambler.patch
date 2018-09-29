@@ -1,0 +1,13 @@
+=== modified file 'module-dvbapi.h'
+--- module-dvbapi.h	2017-06-27 06:10:11 +0000
++++ module-dvbapi.h	2018-09-29 12:37:22 +0000
+@@ -26,7 +26,7 @@
+ #define ECMINFO_FILE    "/tmp/ecm.info"
+ #endif
+ 
+-#define MAX_DEMUX 16
++#define MAX_DEMUX 64
+ #define MAX_CAID 50
+ #define ECM_PIDS 30
+ #define MAX_FILTER 32
+

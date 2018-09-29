@@ -4,6 +4,9 @@ FROM lsiobase/ubuntu:bionic as buildstage
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
 
+# copy patches
+COPY patches/ /tmp/patches/
+
 RUN \
  echo "**** install build packages ****" && \
  apt-get update && \
@@ -21,6 +24,7 @@ RUN \
 RUN \
  echo "**** compile oscam ****" && \
  cd /tmp/oscam-svn && \
+ patch -p0 < /tmp/patches/descrambler.patch && \
  ./config.sh \
 	--enable all \
 	--disable \
