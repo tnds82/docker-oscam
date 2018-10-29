@@ -1,29 +1,35 @@
-FROM lsiobase/ubuntu:bionic as buildstage
-############## build stage ##############
+FROM lsiobase/ubuntu:bionic
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
 
 # copy patches
 COPY patches/ /tmp/patches/
+COPY root/ /
 
 RUN \
- echo "**** install build packages ****" && \
+# echo "**** install build packages ****" && \
  apt-get update && \
  apt-get install -y \
 	build-essential \
-	bzr \
+	git \
 	libpcsclite-dev \
 	libssl-dev \
-	libusb-1.0-0-dev
+	libusb-1.0-0-dev \
+        libccid \
+        libpcsclite1 \
+        libusb-1.0-0 \
+        pcscd \
+        udev \
+        curl
 
 RUN \
- echo "**** fetch oscam source ****" && \
- bzr branch lp:oscam /tmp/oscam-svn
+# echo "**** fetch oscam source ****" && \
+ git clone http://repo.or.cz/oscam.git /tmp/oscam
 
 RUN \
  echo "**** compile oscam ****" && \
- cd /tmp/oscam-svn && \
+ cd /tmp/oscam && \
  patch -p0 < /tmp/patches/descrambler.patch && \
  ./config.sh \
 	--enable all \
@@ -43,27 +49,9 @@ RUN \
 	NO_PLUS_TARGET=1 \
 	OSCAM_BIN=/usr/bin/oscam \
 	pcsc-libusb
-############## runtime stage ##############
-FROM lsiobase/ubuntu:bionic
 
-# set version label
-ARG BUILD_DATE
-ARG VERSION
-LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="saarg"
-
-# environment settings
-ARG DEBIAN_FRONTEND="noninteractive"
 
 RUN \
- echo "**** install runtime packages ****" && \
- apt-get update && \
- apt-get install -y \
-	libccid \
-	libpcsclite1 \
-	libusb-1.0-0 \
-	pcscd \
-	udev && \
  echo "**** install PCSC drivers ****" && \
  mkdir -p \
 	/tmp/omnikey && \
@@ -81,10 +69,6 @@ RUN \
 	/var/lib/apt/lists/* \
 	/var/tmp/*
 
-# copy buildstage and local files
-COPY --from=buildstage /usr/bin/oscam /usr/bin/
-COPY --from=buildstage /usr/bin/oscam.debug /usr/bin/
-COPY root/ /
 
 # Ports and volumes
 EXPOSE 8888
