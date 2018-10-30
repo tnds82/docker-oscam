@@ -1,37 +1,39 @@
-FROM lsiobase/ubuntu:bionic
+FROM lsiobase/alpine:3.7
 
-# environment settings
-ARG DEBIAN_FRONTEND="noninteractive"
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="saarg"
 
-# copy patches
 COPY patches/ /tmp/patches/
-COPY root/ /
 
 RUN \
-# echo "**** install build packages ****" && \
- apt-get update && \
- apt-get install -y \
-	build-essential \
-	git \
-	libpcsclite-dev \
-	libssl-dev \
-	libusb-1.0-0-dev \
-        libccid \
-        libpcsclite1 \
-        libusb-1.0-0 \
-        pcscd \
-        udev \
-        curl
-
-RUN \
-# echo "**** fetch oscam source ****" && \
- git clone http://repo.or.cz/oscam.git /tmp/oscam
-
-RUN \
+ echo "**** install build packages ****" && \
+ apk add --no-cache --virtual=build-dependencies \
+	bzr \
+	curl \
+	gcc \
+	g++ \
+	libusb-dev \
+	linux-headers \
+	make \
+	libressl-dev \
+	pcsc-lite-dev \
+	tar && \
+ echo "**** install runtime packages ****" && \
+ apk add --no-cache \
+	ccid \
+	libcrypto1.0 \
+	libssl1.0 \
+	libusb \
+	pcsc-lite \
+	pcsc-lite-libs && \
  echo "**** compile oscam ****" && \
- cd /tmp/oscam && \
+ bzr branch lp:oscam /tmp/oscam-svn && \
+ cd /tmp/oscam-svn && \
  patch -p0 < /tmp/patches/descrambler.patch && \
- ./config.sh \
+./config.sh \
 	--enable all \
 	--disable \
 	CARDREADER_DB2COM \
@@ -48,10 +50,12 @@ RUN \
 	DEFAULT_PCSC_FLAGS="-I/usr/include/PCSC" \
 	NO_PLUS_TARGET=1 \
 	OSCAM_BIN=/usr/bin/oscam \
-	pcsc-libusb
-
-
-RUN \
+	pcsc-libusb && \
+ echo "**** fix broken permissions from pcscd install ****" && \
+ chown root:root \
+	/usr/sbin/pcscd && \
+ chmod 755 \
+	/usr/sbin/pcscd && \
  echo "**** install PCSC drivers ****" && \
  mkdir -p \
 	/tmp/omnikey && \
@@ -63,12 +67,18 @@ RUN \
 	/tmp/omnikey --strip-components=2 && \
  cd /tmp/omnikey && \
  ./install && \
+ echo "**** fix group for card readers and add abc to dialout group ****" && \
+ groupmod -g 24 cron && \
+ groupmod -g 16 dialout && \
+ usermod -a -G 16 abc && \
  echo "**** cleanup ****" && \
+ apk del --purge \
+	build-dependencies && \
  rm -rf \
-	/tmp/* \
-	/var/lib/apt/lists/* \
-	/var/tmp/*
+	/tmp/*
 
+# copy local files
+COPY root/ /
 
 # Ports and volumes
 EXPOSE 8888
