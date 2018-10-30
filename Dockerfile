@@ -11,7 +11,7 @@ COPY patches/ /tmp/patches/
 RUN \
  echo "**** install build packages ****" && \
  apk add --no-cache --virtual=build-dependencies \
-	bzr \
+	git \
 	curl \
 	gcc \
 	g++ \
@@ -30,7 +30,7 @@ RUN \
 	pcsc-lite \
 	pcsc-lite-libs && \
  echo "**** compile oscam ****" && \
- bzr branch lp:oscam /tmp/oscam-svn && \
+ git clone http://repo.or.cz/oscam.git /tmp/oscam-svn && \
  cd /tmp/oscam-svn && \
  patch -p0 < /tmp/patches/descrambler.patch && \
 ./config.sh \
