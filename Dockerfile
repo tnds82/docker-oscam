@@ -32,7 +32,7 @@ RUN \
  echo "**** compile oscam ****" && \
  git clone http://repo.or.cz/oscam.git /tmp/oscam-svn && \
  cd /tmp/oscam-svn && \
- patch -p0 < /tmp/patches/descrambler.patch && \
+# patch -p0 < /tmp/patches/descrambler.patch && \
 ./config.sh \
 	--enable all \
 	--disable \
