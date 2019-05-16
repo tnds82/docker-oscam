@@ -3,15 +3,14 @@ FROM lsiobase/alpine:3.8
 # set version label
 ARG BUILD_DATE
 ARG VERSION
+ARG OSCAM_VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="saarg"
-
-COPY patches/ /tmp/patches/
 
 RUN \
  echo "**** install build packages ****" && \
  apk add --no-cache --virtual=build-dependencies \
-	git \
+	bzr \
 	curl \
 	gcc \
 	g++ \
@@ -20,6 +19,7 @@ RUN \
 	make \
 	libressl-dev \
 	pcsc-lite-dev \
+	subversion \
 	tar && \
  echo "**** install runtime packages ****" && \
  apk add --no-cache \
@@ -30,10 +30,12 @@ RUN \
 	pcsc-lite \
 	pcsc-lite-libs && \
  echo "**** compile oscam ****" && \
- git clone http://repo.or.cz/oscam.git /tmp/oscam-svn && \
+ if [ -z ${OSCAM_VERSION+x} ]; then \
+	OSCAM_VERSION=$(svn info --show-item revision http://www.streamboard.tv/svn/oscam/trunk ); \
+ fi && \
+ svn checkout http://www.streamboard.tv/svn/oscam/trunk@${OSCAM_VERSION} /tmp/oscam-svn && \
  cd /tmp/oscam-svn && \
-# patch -p0 < /tmp/patches/descrambler.patch && \
-./config.sh \
+ ./config.sh \
 	--enable all \
 	--disable \
 	CARDREADER_DB2COM \
