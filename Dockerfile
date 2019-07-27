@@ -1,6 +1,5 @@
 FROM lsiobase/alpine:3.8
 
-# set version label
 ARG BUILD_DATE
 ARG VERSION
 ARG OSCAM_VERSION
