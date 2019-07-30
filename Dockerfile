@@ -4,7 +4,7 @@ ARG BUILD_DATE
 ARG VERSION
 ARG OSCAM_VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="saarg"
+LABEL maintainer="tnds82"
 
 RUN \
  echo "**** install build packages ****" && \
